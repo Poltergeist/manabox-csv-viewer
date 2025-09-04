@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Grid3X3, List, Eye, ChevronDown } from 'lucide-react';
+import { Search, Grid3X3, List, Eye, ChevronDown, RotateCcw } from 'lucide-react';
 import { useDebounce } from 'use-debounce';
 
 interface ToolbarProps {
@@ -9,6 +9,7 @@ interface ToolbarProps {
   onDenseToggle: () => void;
   onLoadSample: () => void;
   onExportCsv: () => void;
+  onReset?: () => void;
   estimatedValue?: number;
   hasImages?: boolean;
   columns?: string[];
@@ -27,6 +28,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   columns = [],
   visibleColumns = [],
   onColumnVisibilityChange,
+  onReset,
   totalRows = 0,
 }) => {
   const [showColumnDropdown, setShowColumnDropdown] = useState(false);
@@ -112,6 +114,18 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             {isDense ? <List className="w-4 h-4 mr-2" /> : <Grid3X3 className="w-4 h-4 mr-2" />}
             {isDense ? 'Normal' : 'Dense'}
           </button>
+          
+          {/* Reset button - only show when there's data loaded */}
+          {totalRows > 0 && onReset && (
+            <button
+              onClick={onReset}
+              className="inline-flex items-center px-3 py-2 border border-orange-300 rounded-lg text-sm font-medium text-orange-700 bg-orange-50 hover:bg-orange-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 shadow-sm"
+              title="Clear data and start over"
+            >
+              <RotateCcw className="w-4 h-4 mr-2" />
+              Reset
+            </button>
+          )}
         </div>
       </div>
 
