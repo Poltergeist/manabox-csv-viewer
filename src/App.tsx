@@ -13,6 +13,7 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isDense, setIsDense] = useState(false);
   const [pageSize, setPageSize] = useState(20);
+  const [pageIndex, setPageIndex] = useState(0);
   const [scryfallColumn, setScryfallColumn] = useState<string | null>(null);
   const [csvData, setCsvData] = useState<string>('');
   const [visibleColumns, setVisibleColumns] = useState<string[]>([]);
@@ -31,6 +32,7 @@ function App() {
           setColumns(parsedColumns);
           setVisibleColumns(parsedColumns); // Show all columns by default
           setCsvData(csvText);
+          setPageIndex(0); // Reset to first page when new data is loaded
           
           // Detect Scryfall column
           const scryfallCol = detectScryfallColumn(parsedColumns);
@@ -60,6 +62,7 @@ function App() {
     setColumns(uploadedColumns);
     setVisibleColumns(uploadedColumns); // Show all columns by default
     setCsvData(csvText);
+    setPageIndex(0); // Reset to first page when new data is loaded
     
     // Detect Scryfall column
     const scryfallCol = detectScryfallColumn(uploadedColumns);
@@ -99,6 +102,11 @@ function App() {
         return prev.filter(id => id !== columnId);
       }
     });
+  }, []);
+
+  const handlePaginationChange = useCallback((newPageIndex: number, newPageSize: number) => {
+    setPageIndex(newPageIndex);
+    setPageSize(newPageSize);
   }, []);
 
   const estimatedValue = calculateEstimatedValue(cards);
@@ -181,7 +189,8 @@ function App() {
               globalFilter={searchTerm}
               isDense={isDense}
               pageSize={pageSize}
-              onPageSizeChange={setPageSize}
+              pageIndex={pageIndex}
+              onPaginationChange={handlePaginationChange}
               visibleColumns={visibleColumns}
               onColumnVisibilityChange={handleColumnVisibilityChange}
             />

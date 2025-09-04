@@ -23,7 +23,8 @@ interface DataTableProps {
   globalFilter: string;
   isDense: boolean;
   pageSize: number;
-  onPageSizeChange: (size: number) => void;
+  pageIndex: number;
+  onPaginationChange: (pageIndex: number, pageSize: number) => void;
   visibleColumns?: string[];
   onColumnVisibilityChange?: (columnId: string, visible: boolean) => void;
 }
@@ -37,7 +38,8 @@ export const DataTable: React.FC<DataTableProps> = ({
   globalFilter,
   isDense,
   pageSize,
-  onPageSizeChange,
+  pageIndex,
+  onPaginationChange,
   visibleColumns = [],
   onColumnVisibilityChange,
 }) => {
@@ -124,7 +126,7 @@ export const DataTable: React.FC<DataTableProps> = ({
       globalFilter,
       columnVisibility,
       pagination: {
-        pageIndex: 0,
+        pageIndex,
         pageSize,
       },
     },
@@ -140,8 +142,8 @@ export const DataTable: React.FC<DataTableProps> = ({
     },
     onPaginationChange: (updater) => {
       if (typeof updater === 'function') {
-        const newState = updater({ pageIndex: 0, pageSize });
-        onPageSizeChange(newState.pageSize);
+        const newState = updater({ pageIndex, pageSize });
+        onPaginationChange(newState.pageIndex, newState.pageSize);
       }
     },
   });
@@ -203,8 +205,8 @@ export const DataTable: React.FC<DataTableProps> = ({
       <div className="flex items-center justify-between bg-white/80 backdrop-blur-sm border border-slate-200 rounded-lg px-4 py-3">
         <div className="flex items-center space-x-2">
           <span className="text-sm text-slate-700">
-            Showing {table.getState().pagination.pageIndex * pageSize + 1} to{' '}
-            {Math.min((table.getState().pagination.pageIndex + 1) * pageSize, data.length)} of{' '}
+            Showing {pageIndex * pageSize + 1} to{' '}
+            {Math.min((pageIndex + 1) * pageSize, data.length)} of{' '}
             {data.length} results
           </span>
         </div>
@@ -214,7 +216,7 @@ export const DataTable: React.FC<DataTableProps> = ({
             <span className="mr-2">Show:</span>
             <select
               value={pageSize}
-              onChange={(e) => onPageSizeChange(Number(e.target.value))}
+              onChange={(e) => onPaginationChange(0, Number(e.target.value))}
               className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
             >
               {[10, 20, 50, 100].map((size) => (
