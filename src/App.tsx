@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Upload } from 'lucide-react';
 import Papa from 'papaparse';
 import { type Card } from '@/types';
 import { CsvUpload } from '@/components/CsvUpload';
 import { DataTable } from '@/components/DataTable';
 import { Toolbar } from '@/components/Toolbar';
-import { saveCsvData, loadCsvData, detectScryfallColumn, calculateEstimatedValue } from '@/utils/storage';
+import { saveCsvData, loadCsvData, detectScryfallColumn, calculateEstimatedValue, clearCsvData } from '@/utils/storage';
 import { SAMPLE_CSV_DATA } from '@/data/sampleCsv';
 
 function App() {
@@ -13,6 +14,7 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isDense, setIsDense] = useState(false);
   const [pageSize, setPageSize] = useState(20);
+  const [pageIndex, setPageIndex] = useState(0);
   const [scryfallColumn, setScryfallColumn] = useState<string | null>(null);
   const [csvData, setCsvData] = useState<string>('');
   const [visibleColumns, setVisibleColumns] = useState<string[]>([]);
@@ -31,6 +33,7 @@ function App() {
           setColumns(parsedColumns);
           setVisibleColumns(parsedColumns); // Show all columns by default
           setCsvData(csvText);
+          setPageIndex(0); // Reset to first page when new data is loaded
           
           // Detect Scryfall column
           const scryfallCol = detectScryfallColumn(parsedColumns);
@@ -60,6 +63,7 @@ function App() {
     setColumns(uploadedColumns);
     setVisibleColumns(uploadedColumns); // Show all columns by default
     setCsvData(csvText);
+    setPageIndex(0); // Reset to first page when new data is loaded
     
     // Detect Scryfall column
     const scryfallCol = detectScryfallColumn(uploadedColumns);
@@ -101,6 +105,54 @@ function App() {
     });
   }, []);
 
+  const handlePaginationChange = useCallback((newPageIndex: number, newPageSize: number) => {
+    setPageIndex(newPageIndex);
+    setPageSize(newPageSize);
+  }, []);
+
+  const handleReset = useCallback(() => {
+    setCards([]);
+    setColumns([]);
+    setVisibleColumns([]);
+    setCsvData('');
+    setPageIndex(0);
+    setScryfallColumn(null);
+    setSearchTerm('');
+    clearCsvData();
+  }, []);
+
+  const handleFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        dynamicTyping: true,
+        complete: (results) => {
+          if (results.data && results.meta.fields) {
+            // Convert to our card format and extract original CSV text
+            const cards = results.data as Card[];
+            const headers = results.meta.fields;
+            
+            // Read file as text to store original CSV
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              const csvText = e.target?.result as string;
+              handleCsvUpload(cards, headers, csvText);
+            };
+            reader.readAsText(file);
+          }
+        },
+        error: (error) => {
+          console.error('CSV parsing error:', error);
+          alert('Error parsing CSV file. Please check the format.');
+        },
+      });
+    }
+    // Reset the input value so the same file can be selected again
+    e.target.value = '';
+  }, []);
+
   const estimatedValue = calculateEstimatedValue(cards);
 
   return (
@@ -122,6 +174,17 @@ function App() {
             </div>
             {cards.length > 0 && (
               <div className="flex space-x-2">
+                <label className="cursor-pointer inline-flex items-center px-3 py-2 border border-green-300 rounded-lg text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 shadow-sm">
+                  <input
+                    type="file"
+                    accept=".csv,text/csv"
+                    onChange={handleFileInputChange}
+                    className="hidden"
+                  />
+                  <Upload className="w-4 h-4 mr-2" />
+                  Upload New CSV
+                </label>
+                
                 <button
                   onClick={handleLoadSample}
                   className="inline-flex items-center px-3 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-sm"
@@ -166,6 +229,7 @@ function App() {
               onDenseToggle={() => setIsDense(!isDense)}
               onLoadSample={handleLoadSample}
               onExportCsv={handleExportCsv}
+              onReset={handleReset}
               estimatedValue={estimatedValue}
               hasImages={!!scryfallColumn}
               columns={columns}
@@ -181,7 +245,8 @@ function App() {
               globalFilter={searchTerm}
               isDense={isDense}
               pageSize={pageSize}
-              onPageSizeChange={setPageSize}
+              pageIndex={pageIndex}
+              onPaginationChange={handlePaginationChange}
               visibleColumns={visibleColumns}
               onColumnVisibilityChange={handleColumnVisibilityChange}
             />

@@ -53,6 +53,14 @@ export const loadCsvData = (): string | null => {
   }
 };
 
+export const clearCsvData = (): void => {
+  try {
+    localStorage.removeItem(CSV_DATA_KEY);
+  } catch (error) {
+    console.warn('Failed to clear CSV data from localStorage:', error);
+  }
+};
+
 export const fetchScryfallImage = async (id: string): Promise<ScryfallImage | null> => {
   try {
     const response = await fetch(`https://api.scryfall.com/cards/${id}`);
