@@ -8,8 +8,9 @@ import {
   createColumnHelper,
   flexRender,
   type ColumnDef,
+  type VisibilityState,
 } from '@tanstack/react-table';
-import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
+import { ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { type Card } from '@/types';
 import { CardImage } from './CardImage';
 import { ImageLightbox } from './ImageLightbox';
@@ -23,6 +24,8 @@ interface DataTableProps {
   isDense: boolean;
   pageSize: number;
   onPageSizeChange: (size: number) => void;
+  visibleColumns?: string[];
+  onColumnVisibilityChange?: (columnId: string, visible: boolean) => void;
 }
 
 const columnHelper = createColumnHelper<Card>();
@@ -35,12 +38,25 @@ export const DataTable: React.FC<DataTableProps> = ({
   isDense,
   pageSize,
   onPageSizeChange,
+  visibleColumns = [],
+  onColumnVisibilityChange,
 }) => {
   const [lightboxImage, setLightboxImage] = useState<{
     url: string;
     name: string;
   } | null>(null);
   const { getImage } = useScryfallCache();
+
+  // Create column visibility state
+  const columnVisibility = useMemo(() => {
+    const visibility: VisibilityState = {};
+    if (visibleColumns.length > 0) {
+      columns.forEach(column => {
+        visibility[column] = visibleColumns.includes(column);
+      });
+    }
+    return visibility;
+  }, [columns, visibleColumns]);
 
   const tableColumns = useMemo(() => {
     const cols: ColumnDef<Card, unknown>[] = [];
@@ -106,10 +122,21 @@ export const DataTable: React.FC<DataTableProps> = ({
     globalFilterFn: 'includesString',
     state: {
       globalFilter,
+      columnVisibility,
       pagination: {
         pageIndex: 0,
         pageSize,
       },
+    },
+    onColumnVisibilityChange: (updater) => {
+      if (onColumnVisibilityChange && typeof updater === 'function') {
+        const newVisibility = updater(columnVisibility);
+        Object.entries(newVisibility).forEach(([columnId, visible]) => {
+          if (columns.includes(columnId)) {
+            onColumnVisibilityChange(columnId, visible as boolean);
+          }
+        });
+      }
     },
     onPaginationChange: (updater) => {
       if (typeof updater === 'function') {
@@ -120,23 +147,23 @@ export const DataTable: React.FC<DataTableProps> = ({
   });
 
   const renderSortIcon = (isSorted: string | false) => {
-    if (isSorted === 'asc') return <ChevronUp className="w-4 h-4" />;
-    if (isSorted === 'desc') return <ChevronDown className="w-4 h-4" />;
-    return <ChevronsUpDown className="w-4 h-4 opacity-50" />;
+    if (isSorted === 'asc') return <ChevronUp className="w-3 h-3" />;
+    if (isSorted === 'desc') return <ChevronDown className="w-3 h-3" />;
+    return <ChevronsUpDown className="w-3 h-3 opacity-50" />;
   };
 
   return (
     <div className="space-y-4">
       {/* Table */}
-      <div className="overflow-x-auto border border-gray-200 rounded-lg">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+      <div className="overflow-x-auto bg-white rounded-xl border border-slate-200 shadow-sm">
+        <table className="min-w-full divide-y divide-slate-200">
+          <thead className="bg-slate-50">
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
                   <th
                     key={header.id}
-                    className={`px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 ${
+                    className={`px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider cursor-pointer hover:bg-slate-100 transition-colors ${
                       isDense ? 'py-2' : 'py-3'
                     }`}
                     onClick={header.column.getToggleSortingHandler()}
@@ -153,13 +180,13 @@ export const DataTable: React.FC<DataTableProps> = ({
               </tr>
             ))}
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-white divide-y divide-slate-100">
             {table.getRowModel().rows.map((row) => (
-              <tr key={row.id} className="hover:bg-gray-50">
+              <tr key={row.id} className="hover:bg-slate-50 transition-colors">
                 {row.getVisibleCells().map((cell) => (
                   <td
                     key={cell.id}
-                    className={`px-3 text-sm text-gray-900 ${
+                    className={`px-4 text-sm text-slate-900 ${
                       isDense ? 'py-2' : 'py-4'
                     }`}
                   >
@@ -173,22 +200,22 @@ export const DataTable: React.FC<DataTableProps> = ({
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between bg-white/80 backdrop-blur-sm border border-slate-200 rounded-lg px-4 py-3">
         <div className="flex items-center space-x-2">
-          <span className="text-sm text-gray-700">
+          <span className="text-sm text-slate-700">
             Showing {table.getState().pagination.pageIndex * pageSize + 1} to{' '}
             {Math.min((table.getState().pagination.pageIndex + 1) * pageSize, data.length)} of{' '}
             {data.length} results
           </span>
         </div>
         
-        <div className="flex items-center space-x-2">
-          <label className="text-sm text-gray-700">
-            Rows per page:
+        <div className="flex items-center space-x-4">
+          <label className="flex items-center text-sm text-slate-700">
+            <span className="mr-2">Show:</span>
             <select
               value={pageSize}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}
-              className="ml-2 border border-gray-300 rounded px-2 py-1 text-sm"
+              className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
             >
               {[10, 20, 50, 100].map((size) => (
                 <option key={size} value={size}>
@@ -198,20 +225,38 @@ export const DataTable: React.FC<DataTableProps> = ({
             </select>
           </label>
           
-          <div className="flex space-x-1">
+          <div className="flex items-center space-x-1">
+            <button
+              onClick={() => table.setPageIndex(0)}
+              disabled={!table.getCanPreviousPage()}
+              className="p-2 text-sm border border-slate-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+              title="First page"
+            >
+              <ChevronsLeft className="w-4 h-4" />
+            </button>
             <button
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
-              className="px-3 py-1 text-sm border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              className="p-2 text-sm border border-slate-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+              title="Previous page"
             >
-              Previous
+              <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
-              className="px-3 py-1 text-sm border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              className="p-2 text-sm border border-slate-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+              title="Next page"
             >
-              Next
+              <ChevronRight className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+              disabled={!table.getCanNextPage()}
+              className="p-2 text-sm border border-slate-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+              title="Last page"
+            >
+              <ChevronsRight className="w-4 h-4" />
             </button>
           </div>
         </div>

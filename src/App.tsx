@@ -15,6 +15,7 @@ function App() {
   const [pageSize, setPageSize] = useState(20);
   const [scryfallColumn, setScryfallColumn] = useState<string | null>(null);
   const [csvData, setCsvData] = useState<string>('');
+  const [visibleColumns, setVisibleColumns] = useState<string[]>([]);
 
   const handleCsvData = useCallback((csvText: string) => {
     Papa.parse(csvText, {
@@ -28,6 +29,7 @@ function App() {
           
           setCards(parsedCards);
           setColumns(parsedColumns);
+          setVisibleColumns(parsedColumns); // Show all columns by default
           setCsvData(csvText);
           
           // Detect Scryfall column
@@ -56,6 +58,7 @@ function App() {
   const handleCsvUpload = useCallback((uploadedCards: Card[], uploadedColumns: string[], csvText: string) => {
     setCards(uploadedCards);
     setColumns(uploadedColumns);
+    setVisibleColumns(uploadedColumns); // Show all columns by default
     setCsvData(csvText);
     
     // Detect Scryfall column
@@ -88,27 +91,66 @@ function App() {
     document.body.removeChild(link);
   }, [csvData]);
 
+  const handleColumnVisibilityChange = useCallback((columnId: string, visible: boolean) => {
+    setVisibleColumns(prev => {
+      if (visible) {
+        return prev.includes(columnId) ? prev : [...prev, columnId];
+      } else {
+        return prev.filter(id => id !== columnId);
+      }
+    });
+  }, []);
+
   const estimatedValue = calculateEstimatedValue(cards);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">MTG Collection Viewer</h1>
-          <p className="mt-2 text-gray-600">
-            Upload your Magic: The Gathering collection CSV to view, search, and analyze your cards.
-          </p>
+    <div className="min-h-screen bg-gradient-to-b from-indigo-50 to-white text-slate-800">
+      {/* Sticky translucent header */}
+      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-sm border-b border-indigo-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-sm font-medium">
+                MTG
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-slate-900">Collection Viewer</h1>
+                <p className="text-sm text-slate-600">
+                  View, search, and analyze your Magic: The Gathering collection
+                </p>
+              </div>
+            </div>
+            {cards.length > 0 && (
+              <div className="flex space-x-2">
+                <button
+                  onClick={handleLoadSample}
+                  className="inline-flex items-center px-3 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-sm"
+                >
+                  Load Sample
+                </button>
+                
+                <button
+                  onClick={handleExportCsv}
+                  className="inline-flex items-center px-3 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-sm"
+                >
+                  Export CSV
+                </button>
+              </div>
+            )}
+          </div>
         </div>
+      </header>
+
+      <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
 
         {cards.length === 0 ? (
           /* Upload state */
-          <div className="max-w-2xl mx-auto">
+          <div className="max-w-2xl mx-auto mt-8">
             <CsvUpload onCsvUpload={handleCsvUpload} />
             <div className="mt-6 text-center">
               <button
                 onClick={handleLoadSample}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-sm"
               >
                 Load Sample Data
               </button>
@@ -116,7 +158,7 @@ function App() {
           </div>
         ) : (
           /* Data view state */
-          <div className="space-y-6">
+          <div className="space-y-6 mt-8">
             <Toolbar
               searchTerm={searchTerm}
               onSearchChange={setSearchTerm}
@@ -126,6 +168,10 @@ function App() {
               onExportCsv={handleExportCsv}
               estimatedValue={estimatedValue}
               hasImages={!!scryfallColumn}
+              columns={columns}
+              visibleColumns={visibleColumns}
+              onColumnVisibilityChange={handleColumnVisibilityChange}
+              totalRows={cards.length}
             />
             
             <DataTable
@@ -136,6 +182,8 @@ function App() {
               isDense={isDense}
               pageSize={pageSize}
               onPageSizeChange={setPageSize}
+              visibleColumns={visibleColumns}
+              onColumnVisibilityChange={handleColumnVisibilityChange}
             />
           </div>
         )}

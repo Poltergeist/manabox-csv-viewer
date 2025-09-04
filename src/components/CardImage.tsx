@@ -65,15 +65,15 @@ export const CardImage: React.FC<CardImageProps> = ({
     medium: 'w-20 h-28'
   };
 
-  const baseClasses = `${sizeClasses[size]} bg-gray-100 border border-gray-200 rounded flex items-center justify-center overflow-hidden`;
+  const baseClasses = `${sizeClasses[size]} bg-slate-100 border border-slate-200 rounded-lg flex items-center justify-center overflow-hidden`;
   const finalClasses = onClick 
-    ? `${baseClasses} cursor-pointer hover:shadow-md transition-shadow ${className}`
+    ? `${baseClasses} cursor-pointer hover:ring-2 hover:ring-indigo-500 hover:ring-offset-1 hover:shadow-md transition-all duration-200 ${className}`
     : `${baseClasses} ${className}`;
 
   if (loading) {
     return (
       <div className={finalClasses}>
-        <Loader className="w-4 h-4 animate-spin text-gray-400" />
+        <Loader className="w-4 h-4 animate-spin text-slate-400" />
       </div>
     );
   }
@@ -81,7 +81,7 @@ export const CardImage: React.FC<CardImageProps> = ({
   if (error || !imageUrl) {
     return (
       <div className={finalClasses}>
-        <Image className="w-4 h-4 text-gray-400" />
+        <Image className="w-4 h-4 text-slate-400" />
       </div>
     );
   }
